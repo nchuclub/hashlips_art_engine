@@ -2,6 +2,7 @@ const GifEncoder = require("gif-encoder-2");
 const { writeFile } = require("fs");
 
 class HashLipsGiffer {
+  //构造函数，分别是画板、
   constructor(_canvas, _ctx, _fileName, _repeat, _quality, _delay) {
     this.canvas = _canvas;
     this.ctx = _ctx;

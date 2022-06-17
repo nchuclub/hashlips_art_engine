@@ -34,7 +34,17 @@ const layerConfigurations = [
       { name: "Bottom lid" },
       { name: "Top lid" },
     ],
-  },
+  },  {
+    growEditionSizeTo: 7,
+    layersOrder: [
+      { name: "Background" ,
+        options :{
+          bypassDNA: true
+        }
+      },
+        { name: "Eyeball" },
+    ],
+  }
 ];
 
 const shuffleLayerConfigurations = false;
