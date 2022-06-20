@@ -148,6 +148,7 @@ const saveImage = (_editionCount) => {
 const genColor = () => {
   let hue = Math.floor(Math.random() * 360);
   let pastel = `hsl(${hue}, 100%, ${background.brightness})`;
+  
   return pastel;
 };
 //画背景
@@ -219,7 +220,7 @@ const loadLayerImg = async (_layer) => {
     console.error("Error loading image:", error);
   }
 };
-
+//只产生文字图片
 const addText = (_sig, x, y, size) => {
   ctx.fillStyle = text.color;
   ctx.font = `${text.weight} ${size}pt ${text.family}`;
@@ -227,7 +228,22 @@ const addText = (_sig, x, y, size) => {
   ctx.textAlign = text.align;
   ctx.fillText(_sig, x, y);
 };
-
+// 某个renderobj实例
+// {
+//   layer: {
+//     name: 'Background',
+//     blend: 'source-over',
+//     opacity: 1,
+//     selectedElement: {
+//       id: 0,
+//       name: 'Black',
+//       filename: 'Black#1.png',
+//       path: '/Users/dev/hashlips_art_engine/layers/Background/Black#1.png',
+//       weight: 1
+//     }
+//   },
+//   loadedImage: [Image:512x512 /Users/dev/hashlips_art_engine/layers/Background/Black#1.png complete]
+// }
 const drawElement = (_renderObject, _index, _layersLen) => {
   ctx.globalAlpha = _renderObject.layer.opacity;
   ctx.globalCompositeOperation = _renderObject.layer.blend;
@@ -248,7 +264,7 @@ const drawElement = (_renderObject, _index, _layersLen) => {
 
   addAttributes(_renderObject);
 };
-//返回
+//将element属性赋值给layer的selectedElement
 const constructLayerToDna = (_dna = "", _layers = []) => {
   let mappedDnaToLayers = _layers.map((layer, index) => {
     let selectedElement = layer.elements.find(
@@ -272,13 +288,14 @@ const constructLayerToDna = (_dna = "", _layers = []) => {
  * @param {String} _dna New DNA string
  * @returns new DNA string with any items that should be filtered, removed.
  */
-//过滤DNA字符串
+//清除DNA字符串里的options
 const filterDNAOptions = (_dna) => {
   const dnaItems = _dna.split(DNA_DELIMITER);
   const filteredDNA = dnaItems.filter((element) => {
     const query = /(\?.*$)/;
     //exec方法返回匹配的实例数组，如果没有匹配返回null
     const querystring = query.exec(element);
+    //如果没有参数直接返回
     if (!querystring) {
       return true;
     }
@@ -305,9 +322,9 @@ const removeQueryStrings = (_dna) => {
 };
 //DNA判重，看集合中是否存在过滤后的DNA
 const isDnaUnique = (_DnaList = new Set(), _dna = "") => {
-  console.log(_dna);
+  // console.log(_dna);
   const _filteredDNA = filterDNAOptions(_dna);
-  console.log(_dna);
+  // console.log(_filteredDNA);
   return !_DnaList.has(_filteredDNA);
 };
 //随机生成图片DNA
@@ -387,7 +404,7 @@ const saveMetaDataSingleFile = (_editionCount) => {
     : null;
   fs.writeFileSync(
     `${buildDir}/json/${_editionCount}.json`,
-    JSON.stringify(metadata, null, 2)
+    JSON.stringify(metadata, null, 2)//使用两个空格缩进
   );
 };
 
@@ -445,7 +462,7 @@ const startCreating = async () => {
       if (isDnaUnique(dnaList, newDna)) {
         let results = constructLayerToDna(newDna, layers);
         let loadedElements = [];
-
+      //将layer加入到loadedElements中,并添加loadedImage属性
         results.forEach((layer) => {
           loadedElements.push(loadLayerImg(layer));
         });
@@ -453,6 +470,8 @@ const startCreating = async () => {
         await Promise.all(loadedElements).then((renderObjectArray) => {
           debugLogs ? console.log("Clearing canvas") : null;
           ctx.clearRect(0, 0, format.width, format.height);
+          
+          //是否生成动图预览
           if (gif.export) {
             hashlipsGiffer = new HashlipsGiffer(
               canvas,
@@ -464,10 +483,12 @@ const startCreating = async () => {
             );
             hashlipsGiffer.start();
           }
+          //如果设置了背景图
           if (background.generate) {
             drawBackground();
           }
           renderObjectArray.forEach((renderObject, index) => {
+            // console.log(renderObject);
             drawElement(
               renderObject,
               index,
@@ -483,8 +504,10 @@ const startCreating = async () => {
           debugLogs
             ? console.log("Editions left to create: ", abstractedIndexes)
             : null;
+            //保存图片
           saveImage(abstractedIndexes[0]);
           addMetadata(newDna, abstractedIndexes[0]);
+          //保存json文件
           saveMetaDataSingleFile(abstractedIndexes[0]);
           console.log(
             `Created edition: ${abstractedIndexes[0]}, with DNA: ${sha1(
@@ -492,10 +515,12 @@ const startCreating = async () => {
             )}`
           );
         });
+        //加入dna列表以便验重
         dnaList.add(filterDNAOptions(newDna));
         editionCount++;
         abstractedIndexes.shift();
       } else {
+        //只要出现重复failedCount就会一直加到10000然后停止
         console.log("DNA exists!");
         failedCount++;
         if (failedCount >= uniqueDnaTorrance) {
@@ -508,6 +533,7 @@ const startCreating = async () => {
     }
     layerConfigIndex++;
   }
+  //写入一个总的list
   writeMetaData(JSON.stringify(metadataList, null, 2));
 };
 
