@@ -39,6 +39,7 @@ const layerConfigurations = [
     layersOrder: [
       { name: "Background" ,
         options :{
+          blend: MODE.destinationIn,
           bypassDNA: true,
           opacity: 1,
           displayName: "test"
